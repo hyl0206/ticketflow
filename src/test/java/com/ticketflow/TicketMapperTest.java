@@ -4,6 +4,7 @@ import com.ticketflow.entity.Ticket;
 import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.enums.TicketStatus;
 import com.ticketflow.mapper.TicketMapper;
+import com.ticketflow.util.TicketNoGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +22,8 @@ public class TicketMapperTest {
 
         Ticket ticket = new Ticket();
 
-        ticket.setTicketNo("TK" + System.currentTimeMillis());
+        ticket.setTicketNo(TicketNoGenerator.generate()
+        );
         ticket.setTitle("图片上传失败");
         ticket.setDescription("用户上传图片时服务器返回错误");
 

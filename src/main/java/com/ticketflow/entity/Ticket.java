@@ -1,9 +1,6 @@
 package com.ticketflow.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
 import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.enums.TicketStatus;
 import lombok.Data;
@@ -33,6 +30,12 @@ public class Ticket {
 
     @TableField("assignee_id")
     private Long assigneeId;
+
+    @TableField("due_date")
+    private LocalDateTime dueDate;
+
+    @Version
+    private Integer version;
 
     @TableField("created_at")
     private LocalDateTime createdAt;
