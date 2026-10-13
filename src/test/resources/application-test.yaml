@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: ${TICKETFLOW_TEST_DB_URL}
+    username: ${TICKETFLOW_TEST_DB_USERNAME}
+    password: ${TICKETFLOW_TEST_DB_PASSWORD}
+  sql:
+    init:
+      # Tests initialize the schema only after verifying the connected database.
+      mode: never

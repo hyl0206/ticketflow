@@ -1,0 +1,10 @@
+
+POST http://localhost:8080/api/tickets
+Content-Type: application/json
+
+{
+  "title": "电脑无法连接网络",
+  "description": "办公室电脑无法连接公司WiFi",
+  "priority": "HIGH",
+  "creatorId": 1
+}
