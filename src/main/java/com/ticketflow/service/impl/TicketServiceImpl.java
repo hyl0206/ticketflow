@@ -7,6 +7,8 @@ import com.ticketflow.entity.TicketOperationLog;
 import com.ticketflow.entity.User;
 import com.ticketflow.enums.TicketOperationType;
 import com.ticketflow.enums.TicketStatus;
+import com.ticketflow.exception.UserDisabledException;
+import com.ticketflow.exception.UserNotFoundException;
 import com.ticketflow.mapper.TicketMapper;
 import com.ticketflow.mapper.TicketOperationLogMapper;
 import com.ticketflow.mapper.UserMapper;
@@ -41,13 +43,13 @@ public class TicketServiceImpl implements TicketService {
                 request.getCreatorId());
 
         if (user == null) {
-            throw new IllegalArgumentException("创建人不存在");
+            throw new UserNotFoundException("创建人不存在");
         }
 
         // 2. 检查用户状态
         if (user.getStatus() == null ||
                 user.getStatus() != USER_STATUS_ENABLED) {
-            throw new IllegalArgumentException("用户已被禁用");
+            throw new UserDisabledException("用户已被禁用");
         }
 
         // 3. 创建工单对象

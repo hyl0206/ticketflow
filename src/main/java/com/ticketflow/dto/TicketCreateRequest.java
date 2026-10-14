@@ -12,6 +12,7 @@ public class TicketCreateRequest {
     @NotBlank(message = "工单标题不能为空")
     private String title;
 
+    @NotBlank(message = "工单描述不能为空")
     private String description;
 
     @NotNull(message = "工单优先级不能为空")
