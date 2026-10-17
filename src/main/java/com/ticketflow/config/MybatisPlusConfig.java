@@ -1,7 +1,9 @@
 package com.ticketflow.config;
 
+import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +17,10 @@ public class MybatisPlusConfig {
         interceptor.addInnerInterceptor(
                 new OptimisticLockerInnerInterceptor()
         );
+
+        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.MYSQL);
+        pagination.setOverflow(false);
+        interceptor.addInnerInterceptor(pagination);
 
         return interceptor;
     }

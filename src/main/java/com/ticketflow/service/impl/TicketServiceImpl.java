@@ -1,7 +1,10 @@
 
 package com.ticketflow.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ticketflow.dto.TicketCreateRequest;
+import com.ticketflow.dto.TicketQueryRequest;
 import com.ticketflow.entity.Ticket;
 import com.ticketflow.entity.TicketOperationLog;
 import com.ticketflow.entity.User;
@@ -15,6 +18,8 @@ import com.ticketflow.mapper.UserMapper;
 import com.ticketflow.service.TicketService;
 import com.ticketflow.util.TicketNoGenerator;
 import com.ticketflow.vo.TicketCreateResponse;
+import com.ticketflow.vo.TicketListItemResponse;
+import com.ticketflow.vo.TicketPageResponse;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +37,37 @@ public class TicketServiceImpl implements TicketService {
     private final TicketMapper ticketMapper;
     private final UserMapper userMapper;
     private final TicketOperationLogMapper operationLogMapper;
+
+    @Override
+    public TicketPageResponse queryTickets(TicketQueryRequest request) {
+        String keyword = request.getKeyword() == null ? null : request.getKeyword().strip();
+        LambdaQueryWrapper<Ticket> query = new LambdaQueryWrapper<Ticket>()
+                .select(Ticket::getId, Ticket::getTicketNo, Ticket::getTitle, Ticket::getStatus,
+                        Ticket::getPriority, Ticket::getCreatorId, Ticket::getCreatedAt)
+                .like(keyword != null && !keyword.isEmpty(), Ticket::getTitle, keyword)
+                .eq(request.getStatus() != null, Ticket::getStatus, request.getStatus())
+                .eq(request.getPriority() != null, Ticket::getPriority, request.getPriority())
+                .eq(request.getCreatorId() != null, Ticket::getCreatorId, request.getCreatorId())
+                .orderByDesc(Ticket::getCreatedAt, Ticket::getId);
+
+        Page<Ticket> page = ticketMapper.selectPage(
+                new Page<>(request.getPageNum(), request.getPageSize()), query);
+        return new TicketPageResponse(
+                page.getRecords().stream().map(this::toListItemResponse).toList(),
+                page.getTotal(), page.getCurrent(), page.getSize(), page.getPages());
+    }
+
+    private TicketListItemResponse toListItemResponse(Ticket ticket) {
+        TicketListItemResponse response = new TicketListItemResponse();
+        response.setId(ticket.getId());
+        response.setTicketNo(ticket.getTicketNo());
+        response.setTitle(ticket.getTitle());
+        response.setStatus(ticket.getStatus());
+        response.setPriority(ticket.getPriority());
+        response.setCreatorId(ticket.getCreatorId());
+        response.setCreatedAt(ticket.getCreatedAt());
+        return response;
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

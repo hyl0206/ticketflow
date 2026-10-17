@@ -2,8 +2,10 @@
 package com.ticketflow.controller;
 
 import com.ticketflow.dto.TicketCreateRequest;
+import com.ticketflow.dto.TicketQueryRequest;
 import com.ticketflow.service.TicketService;
 import com.ticketflow.vo.TicketCreateResponse;
+import com.ticketflow.vo.TicketPageResponse;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,11 @@ import org.springframework.web.bind.annotation.*;
 public class TicketController {
 
     private final TicketService ticketService;
+
+    @GetMapping
+    public TicketPageResponse queryTickets(@Valid @ModelAttribute TicketQueryRequest request) {
+        return ticketService.queryTickets(request);
+    }
 
     @PostMapping
     public ResponseEntity<TicketCreateResponse> createTicket(
