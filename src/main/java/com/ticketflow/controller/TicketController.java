@@ -5,6 +5,7 @@ import com.ticketflow.dto.TicketCreateRequest;
 import com.ticketflow.dto.TicketQueryRequest;
 import com.ticketflow.service.TicketService;
 import com.ticketflow.vo.TicketCreateResponse;
+import com.ticketflow.vo.TicketDetailResponse;
 import com.ticketflow.vo.TicketPageResponse;
 
 import jakarta.validation.Valid;
@@ -24,6 +25,11 @@ public class TicketController {
     @GetMapping
     public TicketPageResponse queryTickets(@Valid @ModelAttribute TicketQueryRequest request) {
         return ticketService.queryTickets(request);
+    }
+
+    @GetMapping("/{id}")
+    public TicketDetailResponse getTicketById(@PathVariable("id") Long id) {
+        return ticketService.getTicketById(id);
     }
 
     @PostMapping

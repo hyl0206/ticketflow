@@ -13,7 +13,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(BusinessException exception) {
-        return ResponseEntity.badRequest().body(new ErrorResponse(400, exception.getMessage()));
+        return ResponseEntity.status(exception.getStatus())
+                .body(new ErrorResponse(exception.getStatus().value(), exception.getMessage()));
     }
 
     @ExceptionHandler(BindException.class)

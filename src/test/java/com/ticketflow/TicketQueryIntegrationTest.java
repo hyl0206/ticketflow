@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketflow.entity.Ticket;
 import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.enums.TicketStatus;
+import com.ticketflow.exception.BusinessException;
 import com.ticketflow.mapper.TicketMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.transaction.BeforeTransaction;
@@ -40,6 +42,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -208,6 +211,58 @@ class TicketQueryIntegrationTest {
         assertEquals(1, inner.stream().filter(OptimisticLockerInnerInterceptor.class::isInstance).count());
         var pagination = assertInstanceOf(PaginationInnerInterceptor.class, inner.getLast());
         assertFalse(pagination.isOverflow());
+    }
+
+    @Test
+    void existingTicketReturnsCompleteDetail() throws Exception {
+        Ticket ticket = fixtures.getFirst();
+        ticket.setStatus(TicketStatus.CLOSED);
+        ticket.setAssigneeId(303L);
+        ticket.setDueDate(ticket.getCreatedAt().plusDays(1));
+        ticket.setUpdatedAt(ticket.getCreatedAt().plusHours(3));
+        ticket.setResolvedAt(ticket.getCreatedAt().plusHours(1));
+        ticket.setClosedAt(ticket.getCreatedAt().plusHours(2));
+        assertEquals(1, ticketMapper.updateById(ticket));
+
+        JsonNode detail = query(get("/api/tickets/{id}", ticket.getId()));
+
+        assertEquals(13, detail.size());
+        assertEquals(ticket.getId(), detail.get("id").asLong());
+        assertEquals(ticket.getTicketNo(), detail.get("ticketNo").asText());
+        assertEquals(ticket.getTitle(), detail.get("title").asText());
+        assertEquals(ticket.getDescription(), detail.get("description").asText());
+        assertEquals(ticket.getStatus().name(), detail.get("status").asText());
+        assertEquals(ticket.getPriority().name(), detail.get("priority").asText());
+        assertEquals(ticket.getCreatorId(), detail.get("creatorId").asLong());
+        assertEquals(ticket.getAssigneeId(), detail.get("assigneeId").asLong());
+        assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ticket.getDueDate()),
+                detail.get("dueDate").asText());
+        assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ticket.getCreatedAt()),
+                detail.get("createdAt").asText());
+        assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ticket.getUpdatedAt()),
+                detail.get("updatedAt").asText());
+        assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ticket.getResolvedAt()),
+                detail.get("resolvedAt").asText());
+        assertEquals(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(ticket.getClosedAt()),
+                detail.get("closedAt").asText());
+        assertFalse(detail.has("version"));
+    }
+
+    @Test
+    void missingTicketReturnsUnifiedNotFoundResponse() throws Exception {
+        Long missingId = fixtures.getFirst().getId();
+        assertEquals(1, ticketMapper.deleteById(missingId));
+        assertNull(ticketMapper.selectById(missingId));
+
+        mockMvc.perform(get("/api/tickets/{id}", missingId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("工单不存在"))
+                .andExpect(result -> {
+                    BusinessException exception = assertInstanceOf(BusinessException.class,
+                            result.getResolvedException());
+                    assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+                });
     }
 
     private void insertCombinationNearMatch(String title, TicketPriority priority, Long creatorId) {

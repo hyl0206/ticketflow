@@ -7,6 +7,7 @@ import com.ticketflow.entity.User;
 import com.ticketflow.enums.TicketOperationType;
 import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.enums.TicketStatus;
+import com.ticketflow.exception.BusinessException;
 import com.ticketflow.exception.UserDisabledException;
 import com.ticketflow.exception.UserNotFoundException;
 import com.ticketflow.mapper.TicketMapper;
@@ -23,6 +24,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,5 +124,62 @@ class TicketServiceImplTest {
 
         assertEquals("用户已被禁用", exception.getMessage());
         verifyNoInteractions(ticketMapper, operationLogMapper);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void existingTicketReturnsAllDetailFields(boolean optionalFieldsPresent) {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 10, 19, 9, 0);
+        Ticket ticket = new Ticket();
+        ticket.setId(10L);
+        ticket.setTicketNo("TF-10");
+        ticket.setTitle("无法登录");
+        ticket.setDescription("登录页面提示错误");
+        ticket.setStatus(optionalFieldsPresent ? TicketStatus.CLOSED : TicketStatus.OPEN);
+        ticket.setPriority(TicketPriority.HIGH);
+        ticket.setCreatorId(1L);
+        ticket.setCreatedAt(createdAt);
+        ticket.setUpdatedAt(createdAt.plusHours(3));
+        ticket.setVersion(2);
+        if (optionalFieldsPresent) {
+            ticket.setAssigneeId(2L);
+            ticket.setDueDate(createdAt.plusDays(1));
+            ticket.setResolvedAt(createdAt.plusHours(1));
+            ticket.setClosedAt(createdAt.plusHours(2));
+        }
+        when(ticketMapper.selectById(10L)).thenReturn(ticket);
+
+        var response = ticketService.getTicketById(10L);
+
+        assertEquals(ticket.getId(), response.getId());
+        assertEquals(ticket.getTicketNo(), response.getTicketNo());
+        assertEquals(ticket.getTitle(), response.getTitle());
+        assertEquals(ticket.getDescription(), response.getDescription());
+        assertEquals(ticket.getStatus(), response.getStatus());
+        assertEquals(ticket.getPriority(), response.getPriority());
+        assertEquals(ticket.getCreatorId(), response.getCreatorId());
+        assertEquals(ticket.getAssigneeId(), response.getAssigneeId());
+        assertEquals(ticket.getDueDate(), response.getDueDate());
+        assertEquals(ticket.getCreatedAt(), response.getCreatedAt());
+        assertEquals(ticket.getUpdatedAt(), response.getUpdatedAt());
+        assertEquals(ticket.getResolvedAt(), response.getResolvedAt());
+        assertEquals(ticket.getClosedAt(), response.getClosedAt());
+        verify(ticketMapper).selectById(10L);
+        verifyNoMoreInteractions(ticketMapper);
+        verifyNoInteractions(userMapper, operationLogMapper);
+    }
+
+    @Test
+    void missingTicketThrowsNotFoundBusinessException() {
+        when(ticketMapper.selectById(10L)).thenReturn(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> ticketService.getTicketById(10L));
+
+        assertEquals("工单不存在", exception.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(ticketMapper).selectById(10L);
+        verifyNoMoreInteractions(ticketMapper);
+        verifyNoInteractions(userMapper, operationLogMapper);
     }
 }

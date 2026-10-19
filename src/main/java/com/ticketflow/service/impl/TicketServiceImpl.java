@@ -10,6 +10,7 @@ import com.ticketflow.entity.TicketOperationLog;
 import com.ticketflow.entity.User;
 import com.ticketflow.enums.TicketOperationType;
 import com.ticketflow.enums.TicketStatus;
+import com.ticketflow.exception.BusinessException;
 import com.ticketflow.exception.UserDisabledException;
 import com.ticketflow.exception.UserNotFoundException;
 import com.ticketflow.mapper.TicketMapper;
@@ -18,10 +19,12 @@ import com.ticketflow.mapper.UserMapper;
 import com.ticketflow.service.TicketService;
 import com.ticketflow.util.TicketNoGenerator;
 import com.ticketflow.vo.TicketCreateResponse;
+import com.ticketflow.vo.TicketDetailResponse;
 import com.ticketflow.vo.TicketListItemResponse;
 import com.ticketflow.vo.TicketPageResponse;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,6 +69,33 @@ public class TicketServiceImpl implements TicketService {
         response.setPriority(ticket.getPriority());
         response.setCreatorId(ticket.getCreatorId());
         response.setCreatedAt(ticket.getCreatedAt());
+        return response;
+    }
+
+    @Override
+    public TicketDetailResponse getTicketById(Long id) {
+        Ticket ticket = ticketMapper.selectById(id);
+        if (ticket == null) {
+            throw new BusinessException(HttpStatus.NOT_FOUND, "工单不存在");
+        }
+        return toDetailResponse(ticket);
+    }
+
+    private TicketDetailResponse toDetailResponse(Ticket ticket) {
+        TicketDetailResponse response = new TicketDetailResponse();
+        response.setId(ticket.getId());
+        response.setTicketNo(ticket.getTicketNo());
+        response.setTitle(ticket.getTitle());
+        response.setDescription(ticket.getDescription());
+        response.setStatus(ticket.getStatus());
+        response.setPriority(ticket.getPriority());
+        response.setCreatorId(ticket.getCreatorId());
+        response.setAssigneeId(ticket.getAssigneeId());
+        response.setDueDate(ticket.getDueDate());
+        response.setCreatedAt(ticket.getCreatedAt());
+        response.setUpdatedAt(ticket.getUpdatedAt());
+        response.setResolvedAt(ticket.getResolvedAt());
+        response.setClosedAt(ticket.getClosedAt());
         return response;
     }
 
