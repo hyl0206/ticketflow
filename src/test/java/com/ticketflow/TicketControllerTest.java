@@ -51,9 +51,11 @@ class TicketControllerTest {
         mockMvc.perform(post("/api/tickets").contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest().toString()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(10))
-                .andExpect(jsonPath("$.ticketNo").value("TF-10"))
-                .andExpect(jsonPath("$.status").value("OPEN"));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("成功"))
+                .andExpect(jsonPath("$.data.id").value(10))
+                .andExpect(jsonPath("$.data.ticketNo").value("TF-10"))
+                .andExpect(jsonPath("$.data.status").value("OPEN"));
         verify(ticketService).createTicket(any(TicketCreateRequest.class));
     }
 
@@ -82,10 +84,7 @@ class TicketControllerTest {
             "description, null, 工单描述不能为空",
             "description, empty, 工单描述不能为空",
             "description, blank, 工单描述不能为空",
-            "priority, null, 工单优先级不能为空",
-            "creatorId, null, 创建人ID不能为空",
-            "creatorId, 0, 创建人ID必须大于0",
-            "creatorId, -1, 创建人ID必须大于0"
+            "priority, null, 工单优先级不能为空"
     })
     void invalidRequestReturnsValidationErrorBeforeCallingService(
             String field, String value, String message) throws Exception {
@@ -115,8 +114,29 @@ class TicketControllerTest {
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.message", containsString("工单标题不能为空")))
                 .andExpect(jsonPath("$.message", containsString("工单描述不能为空")))
-                .andExpect(jsonPath("$.message", containsString("工单优先级不能为空")))
-                .andExpect(jsonPath("$.message", containsString("创建人ID不能为空")));
+                .andExpect(jsonPath("$.message", containsString("工单优先级不能为空")));
+        verifyNoInteractions(ticketService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({"creatorId, 0", "creatorId, -1", "creatorId, 99", "operatorId, 1", "unexpected, 1"})
+    void unknownFieldsCannotSupplyAnIdentity(String field, long value) throws Exception {
+        ObjectNode request = validRequest().put(field, value);
+        mockMvc.perform(post("/api/tickets").contentType(MediaType.APPLICATION_JSON)
+                        .content(request.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST_BODY"));
+        verifyNoInteractions(ticketService);
+    }
+
+    @Test
+    void evenNullCreatorIdIsAnUnsupportedInputField() throws Exception {
+        ObjectNode request = validRequest().putNull("creatorId");
+        mockMvc.perform(post("/api/tickets").contentType(MediaType.APPLICATION_JSON)
+                        .content(request.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST_BODY"));
         verifyNoInteractions(ticketService);
     }
 
@@ -124,7 +144,6 @@ class TicketControllerTest {
         return objectMapper.createObjectNode()
                 .put("title", "无法登录")
                 .put("description", "登录页面提示错误")
-                .put("priority", "HIGH")
-                .put("creatorId", 1L);
+                .put("priority", "HIGH");
     }
 }

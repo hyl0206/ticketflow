@@ -6,10 +6,14 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketflow.entity.Ticket;
+import com.ticketflow.entity.User;
 import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.enums.TicketStatus;
 import com.ticketflow.exception.BusinessException;
 import com.ticketflow.mapper.TicketMapper;
+import com.ticketflow.mapper.UserMapper;
+import com.ticketflow.security.AuthenticatedUser;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,6 +27,9 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.transaction.BeforeTransaction;
@@ -38,9 +45,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,12 +64,14 @@ class TicketQueryIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private TicketMapper ticketMapper;
+    @Autowired private UserMapper userMapper;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private DataSource dataSource;
     @Autowired private ApplicationContext context;
 
     private List<Ticket> fixtures;
     private List<Ticket> sorted;
+    private AuthenticatedUser queryAdmin;
 
     @BeforeTransaction
     void verifyDatabaseAndPrepareSchema() throws Exception {
@@ -88,6 +99,17 @@ class TicketQueryIntegrationTest {
         assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
         // This DELETE and all fixture INSERTs roll back together after each test.
         jdbc.update("DELETE FROM ticket");
+        User admin = new User();
+        String marker = "query_" + UUID.randomUUID().toString().replace("-", "");
+        admin.setUsername(marker);
+        admin.setPassword("query-regression-fixture");
+        admin.setEmail(marker + "@example.invalid");
+        admin.setStatus(1);
+        admin.setCreatedAt(LocalDateTime.now());
+        admin.setUpdatedAt(admin.getCreatedAt());
+        assertEquals(1, userMapper.insert(admin));
+        // This regression suite tests query behavior; JWT/RBAC are exercised in dedicated tests.
+        queryAdmin = new AuthenticatedUser(admin.getId(), admin.getUsername(), Set.of("ADMIN"));
         fixtures = new ArrayList<>();
         for (int i = 0; i < 14; i++) {
             Ticket ticket = new Ticket();
@@ -106,6 +128,11 @@ class TicketQueryIntegrationTest {
         }
         sorted = fixtures.stream().sorted(Comparator.comparing(Ticket::getCreatedAt).reversed()
                 .thenComparing(Comparator.comparing(Ticket::getId).reversed())).toList();
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -149,7 +176,7 @@ class TicketQueryIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(longs = {101, 202, 999})
-    void creatorIdIsOnlyAFilter(long creatorId) throws Exception {
+    void administratorCanFilterByAnyCreatorId(long creatorId) throws Exception {
         assertPage(query(get("/api/tickets").param("creatorId", Long.toString(creatorId))),
                 sorted.stream().filter(t -> t.getCreatorId() == creatorId).toList(), 1, 10);
     }
@@ -254,7 +281,7 @@ class TicketQueryIntegrationTest {
         assertEquals(1, ticketMapper.deleteById(missingId));
         assertNull(ticketMapper.selectById(missingId));
 
-        mockMvc.perform(get("/api/tickets/{id}", missingId))
+        mockMvc.perform(asAdmin(get("/api/tickets/{id}", missingId)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.message").value("工单不存在"))
@@ -282,8 +309,17 @@ class TicketQueryIntegrationTest {
     }
 
     private JsonNode query(MockHttpServletRequestBuilder request) throws Exception {
-        return objectMapper.readTree(mockMvc.perform(request).andExpect(status().isOk())
+        JsonNode envelope = objectMapper.readTree(mockMvc.perform(asAdmin(request)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
+        assertEquals(3, envelope.size());
+        assertEquals(0, envelope.get("code").asInt());
+        assertEquals("成功", envelope.get("message").asText());
+        return envelope.get("data");
+    }
+
+    private MockHttpServletRequestBuilder asAdmin(MockHttpServletRequestBuilder request) {
+        return request.with(authentication(new UsernamePasswordAuthenticationToken(queryAdmin, null,
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))));
     }
 
     private void assertPage(JsonNode page, List<Ticket> expected, int pageNum, int pageSize) {

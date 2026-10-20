@@ -6,6 +6,7 @@ import com.ticketflow.enums.TicketPriority;
 import com.ticketflow.mapper.TicketMapper;
 import com.ticketflow.mapper.UserMapper;
 import com.ticketflow.service.TicketService;
+import com.ticketflow.security.AuthenticatedUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.aop.support.AopUtils;
@@ -17,6 +18,9 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -26,6 +30,7 @@ import java.net.URI;
 import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -135,10 +140,14 @@ abstract class TicketServiceTestSupport {
         creator.setUpdatedAt(LocalDateTime.now());
         assertEquals(1, userMapper.insert(creator));
         assertNotNull(creator.getId());
+        var identity = new AuthenticatedUser(creator.getId(), creator.getUsername(), Set.of("USER"));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                identity, null, List.of(new SimpleGrantedAuthority("ROLE_USER"))));
     }
 
     @AfterEach
     void cleanOwnData() {
+        SecurityContextHolder.clearContext();
         if (creator != null && creator.getId() != null) {
             // No global deletes or truncation. Cleanup runs after all transaction assertions.
             jdbc.update("DELETE FROM ticket_operation_log WHERE operator_id = ?", creator.getId());
@@ -149,7 +158,6 @@ abstract class TicketServiceTestSupport {
 
     protected TicketCreateRequest request() {
         TicketCreateRequest request = new TicketCreateRequest();
-        request.setCreatorId(creator.getId());
         request.setTitle(marker);
         request.setDescription("TicketService transaction integration test " + marker);
         request.setPriority(TicketPriority.HIGH);

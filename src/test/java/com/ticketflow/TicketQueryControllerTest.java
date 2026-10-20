@@ -43,11 +43,13 @@ class TicketQueryControllerTest {
 
         mockMvc.perform(get("/api/tickets"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.records").isEmpty())
-                .andExpect(jsonPath("$.total").value(0))
-                .andExpect(jsonPath("$.pageNum").value(1))
-                .andExpect(jsonPath("$.pageSize").value(10))
-                .andExpect(jsonPath("$.pages").value(0));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("成功"))
+                .andExpect(jsonPath("$.data.records").isEmpty())
+                .andExpect(jsonPath("$.data.total").value(0))
+                .andExpect(jsonPath("$.data.pageNum").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(10))
+                .andExpect(jsonPath("$.data.pages").value(0));
 
         ArgumentCaptor<TicketQueryRequest> query = ArgumentCaptor.forClass(TicketQueryRequest.class);
         verify(ticketService).queryTickets(query.capture());

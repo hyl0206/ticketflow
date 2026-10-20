@@ -13,7 +13,7 @@ public enum TicketStatus {
             case OPEN -> target == ASSIGNED;
             case ASSIGNED -> target == PROCESSING;
             case PROCESSING -> target == RESOLVED;
-            case RESOLVED -> target == CLOSED;
+            case RESOLVED -> target == CLOSED || target == PROCESSING;
             case CLOSED -> false;
         };
     }

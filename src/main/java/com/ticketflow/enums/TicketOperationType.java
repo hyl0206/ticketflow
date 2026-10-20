@@ -7,5 +7,6 @@ public enum TicketOperationType {
     PRIORITY_CHANGE,
     UPDATE,
     RESOLVE,
-    CLOSE
+    CLOSE,
+    REOPEN
 }

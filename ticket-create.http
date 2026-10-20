@@ -1,10 +1,94 @@
+# 手动调用示例。先在本机替换占位值；不要提交真实密码或令牌。
+# 按顺序执行注册、登录，再把 data.accessToken 填入 token。
+@baseUrl = http://localhost:8080
+@username = your_username
+@password = <replace-with-local-password>
+@token = <paste-access-token>
+@adminToken = <paste-admin-access-token>
+@agentToken = <paste-assigned-agent-access-token>
+@ticketId = 1
+@assigneeId = 2
 
-POST http://localhost:8080/api/tickets
+### 注册（只会获得 USER；同名再次注册返回 409）
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### 登录
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### 当前身份
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### 创建工单，创建人来自令牌
+POST {{baseUrl}}/api/tickets
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
   "title": "电脑无法连接网络",
-  "description": "办公室电脑无法连接公司WiFi",
-  "priority": "HIGH",
-  "creatorId": 1
+  "description": "办公室电脑无法连接公司 Wi-Fi",
+  "priority": "HIGH"
 }
+
+### 查询自己权限范围内的工单
+GET {{baseUrl}}/api/tickets?pageNum=1&pageSize=10&status=OPEN
+Authorization: Bearer {{token}}
+
+### 工单详情，先将 ticketId 改为实际创建结果
+GET {{baseUrl}}/api/tickets/{{ticketId}}
+Authorization: Bearer {{token}}
+
+### 修改 OPEN 工单
+PATCH {{baseUrl}}/api/tickets/{{ticketId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "title": "办公室网络连接异常",
+  "priority": "URGENT"
+}
+
+### 管理员分配给启用的 AGENT；需实际授权的测试账号
+POST {{baseUrl}}/api/tickets/{{ticketId}}/assign
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "assigneeId": {{assigneeId}}
+}
+
+### 被分配客服开始处理
+POST {{baseUrl}}/api/tickets/{{ticketId}}/start
+Authorization: Bearer {{agentToken}}
+
+### 被分配客服解决工单
+POST {{baseUrl}}/api/tickets/{{ticketId}}/resolve
+Authorization: Bearer {{agentToken}}
+
+### 可选：创建人重新打开已解决工单（随后需再次解决才能关闭）
+POST {{baseUrl}}/api/tickets/{{ticketId}}/reopen
+Authorization: Bearer {{token}}
+
+### 如果执行了重开，客服再次解决
+POST {{baseUrl}}/api/tickets/{{ticketId}}/resolve
+Authorization: Bearer {{agentToken}}
+
+### 创建人关闭 RESOLVED 工单；CLOSED 为终态
+POST {{baseUrl}}/api/tickets/{{ticketId}}/close
+Authorization: Bearer {{token}}
+
+### 查看操作历史
+GET {{baseUrl}}/api/tickets/{{ticketId}}/operations
+Authorization: Bearer {{token}}

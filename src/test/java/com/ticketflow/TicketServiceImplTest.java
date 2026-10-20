@@ -13,6 +13,10 @@ import com.ticketflow.exception.UserNotFoundException;
 import com.ticketflow.mapper.TicketMapper;
 import com.ticketflow.mapper.TicketOperationLogMapper;
 import com.ticketflow.mapper.UserMapper;
+import com.ticketflow.mapper.RoleMapper;
+import com.ticketflow.mapper.UserRoleMapper;
+import com.ticketflow.security.AuthenticatedUser;
+import com.ticketflow.security.CurrentUserService;
 import com.ticketflow.service.impl.TicketServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +43,9 @@ class TicketServiceImplTest {
     @Mock private TicketMapper ticketMapper;
     @Mock private UserMapper userMapper;
     @Mock private TicketOperationLogMapper operationLogMapper;
+    @Mock private CurrentUserService currentUser;
+    @Mock private RoleMapper roleMapper;
+    @Mock private UserRoleMapper userRoleMapper;
     @InjectMocks private TicketServiceImpl ticketService;
 
     private TicketCreateRequest request;
@@ -48,7 +56,8 @@ class TicketServiceImplTest {
         request.setTitle("无法登录");
         request.setDescription("登录页面提示错误");
         request.setPriority(TicketPriority.HIGH);
-        request.setCreatorId(1L);
+        // Shared identity fixture; a missing ticket may be rejected before the identity is read.
+        lenient().when(currentUser.require()).thenReturn(new AuthenticatedUser(1L, "owner", Set.of("USER")));
     }
 
     @Test

@@ -1,4 +1,8 @@
 spring:
+  jackson:
+    deserialization:
+      fail-on-numbers-for-enums: true
+      accept-float-as-int: false
   application:
     name: ticketflow
 
@@ -7,3 +11,18 @@ spring:
     username: ticketflow_user
     password: ${TICKETFLOW_DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+ticketflow:
+  jwt:
+    secret: ${TICKETFLOW_JWT_SECRET}
+    issuer: ticketflow
+    ttl: PT1H
+
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+
+springdoc:
+  swagger-ui:
+    persist-authorization: false

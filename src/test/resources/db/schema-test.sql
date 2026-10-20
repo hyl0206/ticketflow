@@ -139,3 +139,17 @@ CREATE TABLE IF NOT EXISTS `ticket_operation_log` (
     DEFAULT CHARSET=utf8mb4
     COLLATE=utf8mb4_0900_ai_ci
     COMMENT='工单操作日志表';
+
+-- Built-in roles: idempotent missing-only seed, no users or credentials.
+-- Existing role status is preserved; this does not re-enable disabled roles.
+INSERT INTO sys_role (role_code, role_name, description, status)
+SELECT 'USER', '普通用户', '创建及查看自己的工单', 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_role WHERE role_code = 'USER');
+
+INSERT INTO sys_role (role_code, role_name, description, status)
+SELECT 'AGENT', '客服', '查看及处理分配给自己的工单', 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_role WHERE role_code = 'AGENT');
+
+INSERT INTO sys_role (role_code, role_name, description, status)
+SELECT 'ADMIN', '管理员', '查看及管理所有工单', 1
+WHERE NOT EXISTS (SELECT 1 FROM sys_role WHERE role_code = 'ADMIN');
