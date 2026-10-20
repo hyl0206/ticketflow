@@ -20,7 +20,7 @@ Day 表示原计划的工作包，不表示当前日期或实际投入天数。�
 | D1 需求及核心实体 | 六表及 Entity 已有；补充需求边界和 Notification 概念设计 | `docs/data-model.md`；Notification 的实现仍属于 D13–15 |
 | D1 项目初始化、数据库连接 | 已实现并验证 | 工作副本源码编译、Wrapper 版本检查、应用上下文及真实测试数据库连接通过 |
 | D1 README、首次提交 | README 已补；基线首次提交 `7719738` | `README.md`、Git 历史 |
-| D1 GitHub 仓库 | 待完成 | 用户指定 hyl0206、公开，拟名 ticketflow；连接器/浏览器控制不可用，创建和推送待完成 |
+| D1 GitHub 仓库 | 已完成并核实 | 公开仓库 `https://github.com/hyl0206/ticketflow`；`main` 已推送，远程与本地功能提交 `6431954` 一致，匿名 Git 读取成功 |
 | D2 六表与必需字段 | 已有，测试库验证通过 | `src/main/resources/db/schema.sql`、测试初始化脚本；不代表开发库已迁移 |
 | D2 主键、唯一、普通索引 | 已有 | SQL 定义；不代表线上实例已与脚本一致 |
 | D2 三个候选联合索引 | 已补显式选择的实验脚本 | `V002__candidate_ticket_indexes.opt-in.sql`；未执行、未性能验证，D8 对照测量 |

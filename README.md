@@ -97,4 +97,4 @@ WHERE u.id = @tf_bootstrap_user_id AND u.status = 1
 
 USER 或 ADMIN 可以创建工单。纯 AGENT 只读取和处理分配给自己的工单；兼有 USER 与 AGENT 的账号可以创建，并读取自己创建或分配给自己的工单。
 
-原项目已同步并使用项目自带 Maven 脚本复验，179 项测试全部通过（0 失败、0 错误、0 跳过）。工作副本的 `origin` 指向本机原仓库，原仓库尚未配置 GitHub remote。用户指定公开账号 `hyl0206`，拟用仓库名 `ticketflow`；当前 GitHub 连接器和浏览器控制不可用，创建与发布待完成。本轮未执行开发库迁移，候选联合索引尚未部署或性能验证。
+原项目已同步并使用项目自带 Maven 脚本复验，179 项测试全部通过（0 失败、0 错误、0 跳过）。公开仓库为 [hyl0206/ticketflow](https://github.com/hyl0206/ticketflow)，原项目已配置该 GitHub remote；发布验证结果见阶段记录。任务工作副本的 `origin` 指向本机原仓库。本轮未执行开发库迁移，候选联合索引尚未部署或性能验证。
